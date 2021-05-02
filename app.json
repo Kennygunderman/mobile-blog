@@ -1,0 +1,12 @@
+{
+  "name": "mobile-blog",
+  "displayName": "mobile-blog",
+  "expo": {
+    "name": "mobile-blog",
+    "slug": "mobile-blog",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
