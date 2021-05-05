@@ -9,6 +9,8 @@ target 'mobileblog' do
   config = use_native_modules!
 
   use_react_native!(:path => config["reactNativePath"])
+  pod 'RNFBFirestore', :path => '../node_modules/@react-native-firebase/firestore'
+
 
   # Uncomment to opt-in to using Flipper
   #

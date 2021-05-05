@@ -5,8 +5,14 @@
     "name": "mobile-blog",
     "slug": "mobile-blog",
     "version": "1.0.0",
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.kgunderman.blog",
+      "googleServicesFile": "./ios/GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.mypackage.coolapp",
+      "googleServicesFile": "./android/app/google-services.json"
+    }
   }
 }
