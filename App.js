@@ -20,7 +20,6 @@ const theme = {
 };
 
 export default function App() {
-  console.log(theme.colors);
   return (
     <View style={{ flex: 1, backgroundColor: themeStyles.color_surface.color }}>
       <StatusBar backgroundColor="#010A13" barStyle="light-content" />

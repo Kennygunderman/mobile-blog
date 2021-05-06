@@ -2,7 +2,7 @@ import React from "react";
 import Moment from "moment";
 import { ImageBackground, StyleSheet, Text, View } from "react-native";
 import Ripple from "react-native-material-ripple";
-import { themeStyles } from "../../resources/theme";
+import { themeStyles } from "../resources/theme";
 
 const stripHTML = (htmlStr) => {
   return htmlStr.replace(/<\/?[^>]+(>|$)/g, "");

@@ -16,6 +16,9 @@ const themeStyles = StyleSheet.create({
     fontSize: 16,
   },
   text_body_size: {
+    fontSize: 14,
+  },
+  text_small_size: {
     fontSize: 12,
   },
   text_color_primary: {

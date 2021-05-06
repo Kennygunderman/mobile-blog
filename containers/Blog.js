@@ -2,8 +2,7 @@ import firestore from "@react-native-firebase/firestore";
 
 import React, { Component } from "react";
 import { FlatList, SafeAreaView, View } from "react-native";
-import BlogItem from "../components/BlogItem/BlogItem";
-import Toolbar from "./Toolbar";
+import BlogItem from "../components/BlogItem";
 
 class Blog extends Component {
   state = {
@@ -59,7 +58,6 @@ class Blog extends Component {
           flex: 1,
         }}
       >
-        {/* <Toolbar /> */}
         <SafeAreaView style={{ flex: 1 }}>
           <FlatList
             data={this.state.posts}

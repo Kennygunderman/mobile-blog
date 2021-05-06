@@ -1,5 +1,3 @@
-import firestore from "@react-native-firebase/firestore";
-import Moment from "moment";
 import React, { Component } from "react";
 import {
   SafeAreaView,
@@ -8,13 +6,25 @@ import {
   Text,
   View,
 } from "react-native";
-import BlogItem from "../components/BlogItem/BlogItem";
-import HTML from "react-native-render-html";
+import BlogItem from "../components/BlogItem";
 import { themeStyles } from "../resources/theme";
+import Comment from "../components/Comment";
+import BlogContent from "../components/BlogContent";
+
+import {
+  fetchBlogPost,
+  subscribeBlogPosts,
+  subscribeComments,
+} from "../data/Repo";
 
 class BlogDetail extends Component {
   state = {
-    content: [],
+    content: {
+      header: null,
+      summaryContent: null,
+      comments: null,
+      otherPosts: null,
+    },
     isLoading: true,
     error: false,
   };
@@ -22,6 +32,7 @@ class BlogDetail extends Component {
   itemType = {
     HEADER: "header",
     CONTENT: "content",
+    COMMENT: "comment",
     OTHER_POSTS: "other_posts",
   };
 
@@ -31,79 +42,98 @@ class BlogDetail extends Component {
       title: this.props.route.params.title.slice(0, 5),
     });
 
-    let content = [];
-    let currentPost = null;
-    firestore()
-      .collection("posts")
-      .doc(id)
-      .get()
-      .then((doc) => {
-        currentPost = doc.data();
-        currentPost.id = id;
+    fetchBlogPost(id, (currentPost) => {
+      //set header section
+      let headerSection = {
+        title: null,
+        data: [
+          {
+            id: currentPost.id,
+            image: { uri: currentPost.image },
+            title: "",
+            featured: true,
+            itemType: this.itemType.HEADER,
+          },
+        ],
+      };
 
-        //set header section
-        content.push({
-          title: null,
-          data: [
-            {
-              id: currentPost.id,
-              image: { uri: currentPost.image },
-              title: "",
-              featured: true,
-              itemType: this.itemType.HEADER,
-            },
-          ],
-        });
+      //set summary section
+      let summaryContentSection = {
+        title: currentPost.title,
+        data: [
+          {
+            id: "content-block",
+            title: currentPost.title,
+            date: new Date(currentPost.date.seconds * 1000),
+            summary: currentPost.summary,
+            itemType: this.itemType.CONTENT,
+          },
+        ],
+      };
 
-        //set content section
-        content.push({
-          title: currentPost.title,
-          data: [
-            {
-              id: "content-block",
-              title: currentPost.title,
-              date: new Date(currentPost.date.seconds * 1000),
-              summary: currentPost.summary,
-              itemType: this.itemType.CONTENT,
-            },
-          ],
-        });
-
-        //set other posts section
-        this.unsubscribeBlogPosts = firestore()
-          .collection("posts")
-          .onSnapshot((querySnapshot) => {
-            const otherPosts = [];
-            querySnapshot.forEach((doc) => {
-              const data = doc.data();
-              //don't show the post we are currently on
-              if (doc.id != currentPost.id) {
-                const post = {
-                  ...data,
-                  featured: false,
-                  id: doc.id,
-                  date: new Date(data.date.seconds * 1000),
-                  itemType: this.itemType.OTHER_POSTS,
-                };
-                otherPosts.push(post);
-              }
-            });
-            otherPosts.sort((a, b) => b.date.getTime() - a.date.getTime());
-            content.push({ title: "Other Posts", data: otherPosts });
-            this.setState({
-              isLoading: false,
-              content: content,
-            });
-          });
-      })
-      .catch((error) => {
-        console.log(error);
-        this.setState({ error: true });
+      this.setState((prevState) => {
+        const updatedContent = prevState.content;
+        updatedContent.header = headerSection;
+        updatedContent.summaryContent = summaryContentSection;
+        return {
+          ...prevState,
+          isLoading: false,
+          content: updatedContent,
+        };
       });
+
+      subscribeComments(currentPost.id, (comments) => {
+        comments.forEach((comment) => {
+          comment.itemType = this.itemType.COMMENT;
+        });
+        const commentsSection = {
+          title: "Comments",
+          data: comments,
+        };
+        this.setState((prevState) => {
+          const updatedContent = prevState.content;
+          updatedContent.comments = commentsSection;
+          return {
+            ...prevState,
+            content: updatedContent,
+          };
+        });
+      });
+
+      subscribeBlogPosts([currentPost.id], (posts) => {
+        posts.forEach((post) => {
+          post.featured = false;
+          post.itemType = this.itemType.OTHER_POSTS;
+        });
+
+        const otherPostsSection = {
+          title: "Other Posts",
+          data: posts,
+        };
+        this.setState((prevState) => {
+          const updatedContent = prevState.content;
+          updatedContent.otherPosts = otherPostsSection;
+          return {
+            ...prevState,
+            content: updatedContent,
+          };
+        });
+      });
+    });
   }
 
   renderContent = ({ item }) => {
     switch (item.itemType) {
+      case this.itemType.COMMENT:
+        return (
+          <Comment
+            comment={item.comment}
+            date={item.date}
+            displayName={item.displayName}
+            profilePhotoUrl={item.profilePhotoUrl}
+          />
+        );
+
       case this.itemType.HEADER:
         return (
           <BlogItem
@@ -115,24 +145,7 @@ class BlogDetail extends Component {
           />
         );
       case this.itemType.CONTENT:
-        return (
-          <View style={styles.content}>
-            <Text style={[styles.date_alignment, themeStyles.text_subheader]}>
-              {Moment(item.date).format("MMM. D, YYYY")}
-            </Text>
-            <View style={styles.summary}>
-              <HTML
-                tagsStyles={{
-                  p: { color: "#ffffff", marginBottom: 16 },
-                  ul: { color: "#ffffff" },
-                  li: { color: "#ffffff" },
-                  div: { color: "#ffffff" },
-                }}
-                source={{ html: item.summary }}
-              />
-            </View>
-          </View>
-        );
+        return <BlogContent date={item.date} htmlContent={item.summary} />;
       case this.itemType.OTHER_POSTS:
         return (
           <BlogItem
@@ -150,11 +163,21 @@ class BlogDetail extends Component {
     }
   };
 
+  constructSections() {
+    content = this.state.content;
+    return [
+      content.header ?? { data: [] },
+      content.summaryContent ?? { data: [] },
+      content.comments ?? { data: [] },
+      content.otherPosts ?? { data: [] },
+    ];
+  }
+
   render() {
     return (
       <SafeAreaView>
         <SectionList
-          sections={this.state.content}
+          sections={this.constructSections()}
           renderItem={this.renderContent}
           renderSectionHeader={({ section: { title } }) =>
             title ? (
@@ -191,18 +214,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 16,
     textAlign: "left",
-  },
-  date_alignment: {
-    marginTop: 16,
-    marginStart: 16,
-    fontSize: 16,
-    textAlign: "left",
-  },
-  summary: {
-    margin: 16,
-  },
-  content: {
-    marginBottom: 8,
   },
 });
 
