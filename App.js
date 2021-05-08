@@ -6,6 +6,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import "react-native-gesture-handler";
 import BlogDetail from "./containers/BlogDetail";
 import { themeStyles } from "./resources/theme";
+import LeaveComment from "./containers/LeaveComment";
 
 const Stack = createStackNavigator();
 
@@ -27,6 +28,7 @@ export default function App() {
         <Stack.Navigator>
           <Stack.Screen name="Blog" component={Blog} />
           <Stack.Screen name="Detail" component={BlogDetail} />
+          <Stack.Screen name="LeaveComment" component={LeaveComment} />
         </Stack.Navigator>
       </NavigationContainer>
     </View>

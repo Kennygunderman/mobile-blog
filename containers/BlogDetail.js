@@ -10,12 +10,15 @@ import BlogItem from "../components/BlogItem";
 import { themeStyles } from "../resources/theme";
 import Comment from "../components/Comment";
 import BlogContent from "../components/BlogContent";
+import { authUser } from "../auth/Auth";
 
 import {
   fetchBlogPost,
   subscribeBlogPosts,
   subscribeComments,
 } from "../data/Repo";
+import { FAB } from "react-native-paper";
+import LeaveComment from "./LeaveComment";
 
 class BlogDetail extends Component {
   state = {
@@ -33,6 +36,8 @@ class BlogDetail extends Component {
     HEADER: "header",
     CONTENT: "content",
     COMMENT: "comment",
+    NO_COMMENTS: "no_coments",
+    LEAVE_COMMENT: "leave_comment",
     OTHER_POSTS: "other_posts",
   };
 
@@ -82,44 +87,60 @@ class BlogDetail extends Component {
         };
       });
 
-      subscribeComments(currentPost.id, (comments) => {
-        comments.forEach((comment) => {
-          comment.itemType = this.itemType.COMMENT;
-        });
-        const commentsSection = {
-          title: "Comments",
-          data: comments,
-        };
-        this.setState((prevState) => {
-          const updatedContent = prevState.content;
-          updatedContent.comments = commentsSection;
-          return {
-            ...prevState,
-            content: updatedContent,
-          };
-        });
-      });
+      this.unsubscribeComments = subscribeComments(
+        currentPost.id,
+        (comments) => {
+          comments.forEach((comment) => {
+            comment.itemType = this.itemType.COMMENT;
+          });
 
-      subscribeBlogPosts([currentPost.id], (posts) => {
-        posts.forEach((post) => {
-          post.featured = false;
-          post.itemType = this.itemType.OTHER_POSTS;
-        });
+          if (comments.length == 0) {
+            comments.push({ itemType: this.itemType.NO_COMMENTS });
+          }
 
-        const otherPostsSection = {
-          title: "Other Posts",
-          data: posts,
-        };
-        this.setState((prevState) => {
-          const updatedContent = prevState.content;
-          updatedContent.otherPosts = otherPostsSection;
-          return {
-            ...prevState,
-            content: updatedContent,
+          const commentsSection = {
+            title: "Comments",
+            data: comments,
           };
-        });
-      });
+          this.setState((prevState) => {
+            const updatedContent = prevState.content;
+            updatedContent.comments = commentsSection;
+            return {
+              ...prevState,
+              content: updatedContent,
+            };
+          });
+        }
+      );
+
+      this.unsubscribeBlogPosts = subscribeBlogPosts(
+        [currentPost.id],
+        (posts) => {
+          posts.forEach((post) => {
+            post.featured = false;
+            post.itemType = this.itemType.OTHER_POSTS;
+          });
+
+          const otherPostsSection = {
+            title: "Other Posts",
+            data: posts,
+          };
+          this.setState((prevState) => {
+            const updatedContent = prevState.content;
+            updatedContent.otherPosts = otherPostsSection;
+            return {
+              ...prevState,
+              content: updatedContent,
+            };
+          });
+        }
+      );
     });
+  }
+
+  componentWillUnmount() {
+    this.unsubscribeComments ?? this.unsubscribeComments();
+    this.unsubscribeBlogPosts ?? this.unsubscribeBlogPosts();
   }
 
   renderContent = ({ item }) => {
@@ -132,6 +153,19 @@ class BlogDetail extends Component {
             displayName={item.displayName}
             profilePhotoUrl={item.profilePhotoUrl}
           />
+        );
+
+      case this.itemType.NO_COMMENTS:
+        return (
+          <Text
+            style={[
+              themeStyles.text_color_primary,
+              themeStyles.text_body_size,
+              { margin: 16 },
+            ]}
+          >
+            No comments yet
+          </Text>
         );
 
       case this.itemType.HEADER:
@@ -175,7 +209,13 @@ class BlogDetail extends Component {
 
   render() {
     return (
-      <SafeAreaView>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          flexDirection: "column",
+          justifyContent: "flex-end",
+        }}
+      >
         <SectionList
           sections={this.constructSections()}
           renderItem={this.renderContent}
@@ -199,6 +239,28 @@ class BlogDetail extends Component {
           }
           keyExtractor={(item) => item.id}
         />
+
+        <FAB
+          icon="lead-pencil"
+          style={{
+            margin: 24,
+            position: "absolute",
+            right: 0,
+            bottom: 0,
+          }}
+          onPress={() => {
+            //verify user is authenticated before leaving a comment
+            authUser()
+              .then((user) => {
+                this.props.navigation.push("LeaveComment", {
+                  postId: this.props.route.params.id,
+                });
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          }}
+        ></FAB>
       </SafeAreaView>
     );
   }

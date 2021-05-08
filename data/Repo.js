@@ -1,6 +1,6 @@
 import firestore from "@react-native-firebase/firestore";
+import uuid from "react-native-uuid";
 
-//filderedIds = array of blog post ids to filter out
 const fetchBlogPost = (id, onSuccess, onError) => {
   firestore()
     .collection("posts")
@@ -16,8 +16,9 @@ const fetchBlogPost = (id, onSuccess, onError) => {
     });
 };
 
+//filderedIds = array of blog post ids to filter out
 const subscribeBlogPosts = (filteredIds, onSuccess) => {
-  firestore()
+  return firestore()
     .collection("posts")
     .onSnapshot((querySnapshot) => {
       const posts = [];
@@ -28,6 +29,7 @@ const subscribeBlogPosts = (filteredIds, onSuccess) => {
           const post = {
             ...data,
             id: doc.id,
+            image: { uri: data.image },
             date: new Date(data.date.seconds * 1000),
           };
 
@@ -40,7 +42,7 @@ const subscribeBlogPosts = (filteredIds, onSuccess) => {
 };
 
 const subscribeComments = (postId, onSuccess) => {
-  firestore()
+  return firestore()
     .collection("comments")
     .onSnapshot((querySnapshot) => {
       const comments = [];
@@ -60,4 +62,22 @@ const subscribeComments = (postId, onSuccess) => {
     });
 };
 
-export { fetchBlogPost, subscribeBlogPosts, subscribeComments };
+const addComment = (comment, onSuccess) => {
+  firestore()
+    .collection("comments")
+    .doc(uuid.v4())
+    .set({
+      comment: comment.text,
+      date: new Date(),
+      displayName: comment.userDisplayName,
+      postId: comment.postId,
+      uid: comment.userUid,
+      profilePhotoUrl: comment.userProfileUrl,
+    })
+    .then(() => {
+      onSuccess();
+    })
+    .catch((error) => console.log(error));
+};
+
+export { fetchBlogPost, subscribeBlogPosts, subscribeComments, addComment };

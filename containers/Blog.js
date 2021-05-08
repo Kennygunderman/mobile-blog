@@ -1,8 +1,7 @@
-import firestore from "@react-native-firebase/firestore";
-
 import React, { Component } from "react";
 import { FlatList, SafeAreaView, View } from "react-native";
 import BlogItem from "../components/BlogItem";
+import { subscribeBlogPosts } from "../data/Repo";
 
 class Blog extends Component {
   state = {
@@ -31,24 +30,13 @@ class Blog extends Component {
 
   componentDidMount() {
     this.setState({ isLoading: true });
+    this.unsubscribeBlogPosts = subscribeBlogPosts([], (posts) => {
+      this.setState({ isLoading: false, posts: posts });
+    });
+  }
 
-    firestore()
-      .collection("posts")
-      .onSnapshot((querySnapshot) => {
-        const posts = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          const post = {
-            ...data,
-            image: { uri: data.image },
-            date: new Date(data.date.seconds * 1000), //format data as it comes in from firebase
-            id: doc.id,
-          };
-          posts.push(post);
-        });
-        posts.sort((a, b) => b.date.getTime() - a.date.getTime());
-        this.setState({ isLoading: false, posts: posts });
-      });
+  componentWillUnmount() {
+    this.unsubscribeBlogPosts ?? this.unsubscribeBlogPosts();
   }
 
   render() {
